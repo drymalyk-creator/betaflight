@@ -18,9 +18,9 @@ jobs:
       - name: Install ARM toolchain
         run: make ARM_SDK_DIR=tools arm_sdk_install
       - name: Build FOXEERF722V4
-        run: make TARGET=FOXEERF722V4
+        run: make CONFIG=FOXEERF722V4
       - name: Upload firmware
         uses: actions/upload-artifact@v4
         with:
           name: FOXEERF722V4
-          path: obj/betaflight_*_FOXEERF722V4.hex
+          path: obj/*.hex
