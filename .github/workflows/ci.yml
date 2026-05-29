@@ -13,12 +13,10 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
-      - name: Init submodules
-        run: git submodule update --init --recursive
+      - name: Clone config repo
+        run: git clone https://github.com/betaflight/config.git src/config
       - name: Install ARM toolchain
         run: make ARM_SDK_DIR=tools arm_sdk_install
-      - name: Hydrate configs
-        run: make configs
       - name: Build FOXEERF722V4
         run: make TARGET=FOXEERF722V4
       - name: Upload firmware
