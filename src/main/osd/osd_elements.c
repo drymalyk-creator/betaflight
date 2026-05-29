@@ -813,13 +813,13 @@ static void osdElementArtificialHorizon(osdElementParms_t *element)
 
     // Roll for AHI: yaw rotation at pitch=90° moves gx relative to gy
     const int rollAngle = constrain(
-        (int)(atan2f(gx, -gy) * (1800.0f / M_PIf)) * ahSign,
+        (int)(atan2f(gx, -gz) * (1800.0f / M_PIf)) * ahSign,
         -maxRoll, maxRoll
     );
 
     // Pitch for AHI: deviation from pitch=90° shows as gz
     int pitchAngle = constrain(
-        (int)(gz * maxPitch),
+        (int)(gy * maxPitch),
         -maxPitch, maxPitch
     );
 
