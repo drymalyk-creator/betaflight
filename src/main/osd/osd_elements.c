@@ -793,44 +793,53 @@ static void osdElementArtificialHorizon(osdElementParms_t *element)
 {
     static int x = -4;
 
-    // For a drone that flies permanently at pitch=90° (nose forward like a plane),
-    // the standard Euler roll/pitch for AHI are wrong:
-    //   - yaw   rotation -> should appear as roll  on OSD
-    //   - pitch rotation -> should appear as pitch on OSD
+    // For a drone flying at pitch=90° (nose forward):
+    // The gravity vector in body frame comes from rMat row 2:
+    //   rMat.m[2][0] = gx (right)
+    //   rMat.m[2][1] = gy (forward/nose)
+    //   rMat.m[2][2] = gz (down)
     //
-    // So we use yaw for the AHI roll angle, and keep pitch for the AHI pitch.
+    // At pitch=90°: gz≈0, gy≈-1
+    // Rotating by yaw changes gx → this is our roll for AHI
+    // Pitch deviation from 90° changes gz → this is our pitch for AHI
+
+    const float gx = rMat.m[2][0];
+    const float gz = rMat.m[2][2];
+    const float gy = rMat.m[2][1];
 
     const int maxPitch = osdConfig()->ahMaxPitch * 10;
     const int maxRoll  = osdConfig()->ahMaxRoll  * 10;
     const int ahSign   = osdConfig()->ahInvert ? -1 : 1;
 
-    // Use YAW as the roll angle for AHI (yaw visually acts as roll at pitch=90°)
-    const int rollAngle = constrain(attitude.values.yaw   * ahSign, -maxRoll,  maxRoll);
-    // Pitch stays as pitch
-    int pitchAngle      = constrain(attitude.values.pitch * ahSign, -maxPitch, maxPitch);
+    // Roll for AHI: yaw rotation at pitch=90° moves gx relative to gy
+    const int rollAngle = constrain(
+        (int)(atan2f(gx, -gy) * (1800.0f / M_PIf)) * ahSign,
+        -maxRoll, maxRoll
+    );
 
-    // Convert pitchAngle to y compensation value
-    // (maxPitch / 25) divisor matches previous settings of fixed divisor of 8 and fixed max AHI pitch angle of 20.0 degrees
+    // Pitch for AHI: deviation from pitch=90° shows as gz
+    int pitchAngle = constrain(
+        (int)(gz * maxPitch),
+        -maxPitch, maxPitch
+    );
+
     if (maxPitch > 0) {
         pitchAngle = ((pitchAngle * 25) / maxPitch);
     }
-    pitchAngle -= 41; // 41 = 4 * AH_SYMBOL_COUNT + 5
+    pitchAngle -= 41;
 
     const int y = ((-rollAngle * x) / 64) - pitchAngle;
     if (y >= 0 && y <= 81) {
         element->elemOffsetX = x;
         element->elemOffsetY = y / AH_SYMBOL_COUNT;
-
         tfp_sprintf(element->buff, "%c", (SYM_AH_BAR9_0 + (y % AH_SYMBOL_COUNT)));
     } else {
-        element->drawElement = false;  // element does not need to be rendered
+        element->drawElement = false;
     }
 
     if (x == 4) {
-        // Rendering is complete, so prepare to start again
         x = -4;
     } else {
-        // Rendering not yet complete
         element->rendered = false;
         x++;
     }
