@@ -792,12 +792,23 @@ static void osdElementAntiGravity(osdElementParms_t *element)
 static void osdElementArtificialHorizon(osdElementParms_t *element)
 {
     static int x = -4;
-    // Get pitch and roll limits in tenths of degrees
+
+    // For a drone that flies permanently at pitch=90° (nose forward like a plane),
+    // the standard Euler roll/pitch for AHI are wrong:
+    //   - yaw   rotation -> should appear as roll  on OSD
+    //   - pitch rotation -> should appear as pitch on OSD
+    //
+    // So we use yaw for the AHI roll angle, and keep pitch for the AHI pitch.
+
     const int maxPitch = osdConfig()->ahMaxPitch * 10;
-    const int maxRoll = osdConfig()->ahMaxRoll * 10;
-    const int ahSign = osdConfig()->ahInvert ? -1 : 1;
-    const int rollAngle = constrain(attitude.values.roll * ahSign, -maxRoll, maxRoll);
-    int pitchAngle = constrain(attitude.values.pitch * ahSign, -maxPitch, maxPitch);
+    const int maxRoll  = osdConfig()->ahMaxRoll  * 10;
+    const int ahSign   = osdConfig()->ahInvert ? -1 : 1;
+
+    // Use YAW as the roll angle for AHI (yaw visually acts as roll at pitch=90°)
+    const int rollAngle = constrain(attitude.values.yaw   * ahSign, -maxRoll,  maxRoll);
+    // Pitch stays as pitch
+    int pitchAngle      = constrain(attitude.values.pitch * ahSign, -maxPitch, maxPitch);
+
     // Convert pitchAngle to y compensation value
     // (maxPitch / 25) divisor matches previous settings of fixed divisor of 8 and fixed max AHI pitch angle of 20.0 degrees
     if (maxPitch > 0) {
